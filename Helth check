@@ -1,0 +1,47 @@
+#!/bin/bash
+# ============================================================
+# 🧠 Author: Abdus Salam
+# 🚀 Auto Health Check for 3x-UI (V2Ray)
+# ============================================================
+
+LOGFILE="/root/status.log"
+DATE=$(date "+%Y-%m-%d %H:%M:%S")
+
+echo "===============================" >> $LOGFILE
+echo "🕓 Health Check: $DATE" >> $LOGFILE
+echo "===============================" >> $LOGFILE
+
+# Check 3x-ui service
+if systemctl is-active --quiet x-ui; then
+  echo "✅ 3x-UI Status: Running" >> $LOGFILE
+else
+  echo "❌ 3x-UI Status: Not Running — restarting..." >> $LOGFILE
+  systemctl restart x-ui
+fi
+
+# Check SSL certificate (if exists)
+if [ -d /etc/letsencrypt/live ]; then
+  EXPIRY=$(sudo openssl x509 -enddate -noout -in /etc/letsencrypt/live/*/fullchain.pem 2>/dev/null | cut -d= -f2)
+  echo "🔐 SSL Expiry: $EXPIRY" >> $LOGFILE
+else
+  echo "⚠️ SSL Certificate not found!" >> $LOGFILE
+fi
+
+# Check disk usage
+DISK=$(df -h / | awk 'NR==2 {print $5}')
+echo "💾 Disk Usage: $DISK" >> $LOGFILE
+
+# Check CPU load
+LOAD=$(uptime | awk -F'load average:' '{ print $2 }')
+echo "🧠 CPU Load:$LOAD" >> $LOGFILE
+
+# Check memory usage
+MEMORY=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+echo "📦 RAM Usage: $MEMORY" >> $LOGFILE
+
+# Check network interface
+echo "🌍 Network Interfaces:" >> $LOGFILE
+ip -br a | grep -v lo >> $LOGFILE
+
+echo "✅ Health check completed successfully!" >> $LOGFILE
+echo "" >> $LOGFILE
